@@ -8,6 +8,12 @@
 a {
   text-decoration: none; }
 
+.show {
+  display: block; }
+
+.hide {
+  display: none; }
+
 .btn {
   width: 220px;
   height: 65px;
