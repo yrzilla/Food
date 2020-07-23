@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   tabsContent = document.querySelectorAll('.tabcontent'),
         // Получаем весь контент
   tabsParent = document.querySelector('.tabheader__items'); // Получаем родителя всех вкладок
+  // TABS
   // Скрываем весь контент на сайте
 
   function hideTabContent() {
@@ -132,7 +133,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-  });
+  }); // TIMER
+
+  const deadline = '2020-08-01'; // Функция получения разницы между дедлайном и текущим временем
+
+  function getTimeRemain(endtime) {
+    const t = Date.parse(endtime) - Date.parse(new Date()),
+          // Date.parse(endtime) - кол-во миллисекунд до которого нам нужно дойти (t - общее кол-во миллисекунд)
+    days = Math.floor(t / (1000 * 60 * 60 * 24)),
+          hours = Math.floor(t / (1000 * 60 * 60) % 24),
+          // 1000 - кол-во миллисекунд в одном часе ((t / 1000 * 60 * 60) - общее кол-во часов до дедлайна)
+    minutes = Math.floor(t / 1000 / 60 % 60),
+          seconds = Math.floor(t / 1000 % 60);
+    return {
+      'total': t,
+      'days': days,
+      'hours': hours,
+      'minutes': minutes,
+      'seconds': seconds
+    };
+  }
+
+  function getZero(num) {
+    if (num >= 0 && num < 10) {
+      return `0${num}`;
+    } else {
+      return num;
+    }
+  }
+
+  function setClock(selector, endtime) {
+    const timer = document.querySelector(selector),
+          days = timer.querySelector('#days'),
+          hours = timer.querySelector('#hours'),
+          minutes = timer.querySelector('#minutes'),
+          seconds = timer.querySelector('#seconds'),
+          timeInterval = setInterval(updateClock, 1000);
+    updateClock();
+
+    function updateClock() {
+      const t = getTimeRemain(endtime); // В переменную t записывается результат работы функции getTimeRemain это обьект с разными свойствами и величинами
+
+      days.textContent = getZero(t.days);
+      hours.textContent = getZero(t.hours);
+      minutes.textContent = getZero(t.minutes);
+      seconds.textContent = getZero(t.seconds);
+
+      if (t.total <= 0) {
+        clearInterval(timeInterval);
+      }
+    }
+  }
+
+  setClock('.timer', deadline);
 });
 
 /***/ })
