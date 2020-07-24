@@ -194,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showModal() {
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
+    clearInterval(modalTimer); // При открытии пользователем модального окна, оно не будет повторно всплывать
   }
 
   function closeModal() {
@@ -215,6 +216,16 @@ document.addEventListener('DOMContentLoaded', () => {
       closeModal();
     }
   });
+  const modalTimer = setTimeout(showModal, 15000); // Показ модального окна через определенный промежуток времени
+
+  function showModalByScroll() {
+    if (window.pageYOffset + document.documentElement.clientHeight >= document.documentElement.scrollHeight) {
+      showModal();
+      window.removeEventListener('scroll', showModalByScroll); // удаляем обработчик событий чтобы при каждом пролистывании до конца модальное окно не открывалось
+    }
+  }
+
+  window.addEventListener('scroll', showModalByScroll);
 });
 
 /***/ })
