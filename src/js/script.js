@@ -131,9 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal();
         }
     });
+    // Показ модального окна через определенный промежуток времени
+    // const modalTimer = setTimeout(showModal, 15000); 
 
-    const modalTimer = setTimeout(showModal, 15000); // Показ модального окна через определенный промежуток времени
-
+    // функция показа модального окна при пролистывании страницы до конца
     function showModalByScroll() {
         if(window.pageYOffset + document.documentElement.clientHeight >= document.documentElement.scrollHeight) {
             showModal();
@@ -143,4 +144,129 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     window.addEventListener('scroll', showModalByScroll);
+
+    // Используем классы для карточек
+
+    class MenuCard {
+        constructor(src, alt, title, price, descr, parentSelector){
+            this.src = src;
+            this.alt = alt;
+            this.title = title;
+            this.price = price;
+            this.descr = descr;
+            this.parent = document.querySelector(parentSelector);
+            this.transfer = 27;
+            this.changeToUAH();
+        }
+
+        changeToUAH() {
+            this.price = this.price * this.transfer;
+        }
+
+        render() {
+            const element = document.createElement('div');
+            element.innerHTML = `
+                <div class="menu__item">
+                    <img src=${this.src} alt=${this.alt}>
+                    <h3 class="menu__item-subtitle">${this.title}</h3>
+                    <div class="menu__item-descr">${this.descr}</div>
+                    <div class="menu__item-divider"></div>
+                    <div class="menu__item-price">
+                        <div class="menu__item-cost">Цена:</div>
+                        <div class="menu__item-total"><span>${this.price}</span> грн/день</div>
+                    </div>
+                </div>
+            `;
+            this.parent.append(element);
+        }
+    }
+    new MenuCard(
+        "img/tabs/vegy.jpg",
+        'vegy',
+        'Меню "Фитнес"',
+        9,
+        'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
+        '.menu .container'
+    ).render();
+
+    new MenuCard(
+        "img/tabs/elite.jpg",
+        'elite',
+        'Меню “Премиум”',
+        13,
+        'В меню “Премиум” мы используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
+        '.menu .container'
+    ).render();
+
+    new MenuCard(
+        "img/tabs/post.jpg",
+        'post',
+        'Меню "Постное"',
+        7,
+        'Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.',
+        '.menu .container'
+    ).render();
+
+    // FORMS
+
+    const forms = document.querySelectorAll('form'); // Получаем все элементы по тегу form
+
+    const message = {  // Статус отправки данных
+        loading: "Загрузка",
+        success: "Спасибо! Мы скоро с вами свяжемся",
+        failure: "Произошла ошибка"
+    };
+
+    // Под все формы подвязываем функцию postData
+    forms.forEach(item => {
+        postData(item);
+    });
+
+    // Функция которая будет отвечать за постинг данных
+    function postData(form) {   // функция принимает в себя аргумент(форму)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); //отменяем стандартное поведение браузера
+
+            const statusMessage = document.createElement('div');
+            statusMessage.classList.add('status');
+            statusMessage.textContent = message.loading;
+            form.append(statusMessage);
+
+            const request = new XMLHttpRequest();
+
+            request.open('POST', 'server.php');
+
+            // при связке XMLHTTPRequest и formData заголовок устанавливается автоматически поэтому здесь он не нужен
+            // request.setRequestHeader('Content-type', 'multipart/form-data'); 
+
+            // Для отправки данных в формате JSON
+
+            // request.setRequestHeader('Content-type', 'application/json');
+            // const formData = new FormData(form);
+            // const object = {};
+            // formData.forEach(function(value, key){
+            //     object[key] = value;
+            // });
+            // const json = JSON.stringify(object);
+            // request.send(json);
+
+            const formData = new FormData(form); //внутрь передаем форму с которой нужно собрать информацию
+
+            request.send(formData);  // отправляем данные
+
+            request.addEventListener('load', ()=> {
+                if(request.status === 200){
+                    console.log(request.response);
+                    statusMessage.textContent = message.success;
+                    form.reset();
+                    setTimeout(()=> {
+                        statusMessage.remove();
+                    },2000);
+                } else {
+                    statusMessage.textContent = message.failure;
+                }
+            });
+        });
+
+    }
 });
