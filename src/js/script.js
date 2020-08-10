@@ -99,8 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modal
 
     const modal = document.querySelector('.modal'),
-          modalTrigger = document.querySelectorAll('[data-modal]'),
-          modalClose = document.querySelector('[data-close]');
+          modalTrigger = document.querySelectorAll('[data-modal]');
 
 
     function showModal() {
@@ -117,11 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
     modalTrigger.forEach(item => {
         item.addEventListener('click', showModal);
     });
-    modalClose.addEventListener('click', closeModal);
     
 
     modal.addEventListener('click', (e)=> {
-        if(e.target === modal) {
+        if(e.target === modal || e.target.getAttribute('data-close') == "") { 
             closeModal();
         }
     });
@@ -132,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     // Показ модального окна через определенный промежуток времени
-    // const modalTimer = setTimeout(showModal, 15000); 
+    const modalTimer = setTimeout(showModal, 15000); 
 
     // функция показа модального окна при пролистывании страницы до конца
     function showModalByScroll() {
@@ -212,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const forms = document.querySelectorAll('form'); // Получаем все элементы по тегу form
 
     const message = {  // Статус отправки данных
-        loading: "Загрузка",
+        loading: "img/spinner/spinner.svg",
         success: "Спасибо! Мы скоро с вами свяжемся",
         failure: "Произошла ошибка"
     };
@@ -227,46 +225,61 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', (e) => {
             e.preventDefault(); //отменяем стандартное поведение браузера
 
-            const statusMessage = document.createElement('div');
-            statusMessage.classList.add('status');
-            statusMessage.textContent = message.loading;
-            form.append(statusMessage);
-
-            const request = new XMLHttpRequest();
-
-            request.open('POST', 'server.php');
-
-            // при связке XMLHTTPRequest и formData заголовок устанавливается автоматически поэтому здесь он не нужен
-            // request.setRequestHeader('Content-type', 'multipart/form-data'); 
-
-            // Для отправки данных в формате JSON
-
-            // request.setRequestHeader('Content-type', 'application/json');
-            // const formData = new FormData(form);
-            // const object = {};
-            // formData.forEach(function(value, key){
-            //     object[key] = value;
-            // });
-            // const json = JSON.stringify(object);
-            // request.send(json);
+            const statusMessage = document.createElement('img');
+            statusMessage.src = message.loading;
+            statusMessage.style.cssText = `
+                display:block;
+                margin: 0 auto;
+            `;
+            form.insertAdjecentElement('afterend', statusMessage);
 
             const formData = new FormData(form); //внутрь передаем форму с которой нужно собрать информацию
 
-            request.send(formData);  // отправляем данные
-
-            request.addEventListener('load', ()=> {
-                if(request.status === 200){
-                    console.log(request.response);
-                    statusMessage.textContent = message.success;
-                    form.reset();
-                    setTimeout(()=> {
-                        statusMessage.remove();
-                    },2000);
-                } else {
-                    statusMessage.textContent = message.failure;
-                }
-            });
+            fetch('server.php', {
+                method:'POST',
+                // headers: {
+                //     "Content-type": "application/json"
+                // },
+                body: formData
+            })
+            .then(data => data.text())
+            .then(data => { // data данные которые вернул сервер
+                console.log(data.response);
+                showThanksModal(message.success);                       
+                statusMessage.remove();
+            }).catch(() => {
+                showThanksModal(message.failure);
+            }).finally(()=> { // действия вне зависимости как прошел запрос
+                form.reset();
+            })
         });
 
+    }
+
+    function showThanksModal(message) {
+        const prevModalDialog = document.querySelector('.modal__dialog');
+
+        prevModalDialog.classList.add('hide');
+
+        showModal();
+
+        const thanksModal = document.createElement('div');
+
+        thanksModal.classList.add('modal__dialog');
+
+        thanksModal.innerHTML = `
+            <div class="modal__content">
+                <div class="modal__close" data-close>&times;</div>
+                <div class="modal__title">${message}</div>
+            </div>
+        `;
+        document.querySelector('.modal').append(thanksModal);
+
+        setTimeout(()=> {
+            thanksModal.remove();
+            prevModalDialog.classList.add('show');
+            prevModalDialog.classList.remove('hide');
+            closeModal();
+        },4000);
     }
 });
