@@ -1,3 +1,4 @@
+'use strict';
 document.addEventListener('DOMContentLoaded', () => {
 
     const tabs = document.querySelectorAll('.tabheader__item'), // Получаем все вкладки
@@ -178,33 +179,48 @@ document.addEventListener('DOMContentLoaded', () => {
             this.parent.append(element);
         }
     }
-    new MenuCard(
-        "img/tabs/vegy.jpg",
-        'vegy',
-        'Меню "Фитнес"',
-        9,
-        'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
-        '.menu .container'
-    ).render();
 
-    new MenuCard(
-        "img/tabs/elite.jpg",
-        'elite',
-        'Меню “Премиум”',
-        13,
-        'В меню “Премиум” мы используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
-        '.menu .container'
-    ).render();
+    const getResource = async (url) => { // когда вызываем postData передаем url который дальше передается в fetch; data - данные которые будут поститься
+        const res = await fetch(url);
 
-    new MenuCard(
-        "img/tabs/post.jpg",
-        'post',
-        'Меню "Постное"',
-        7,
-        'Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.',
-        '.menu .container'
-    ).render();
+        if(!res.ok) {
+            throw new Error(`Could not fetch ${url}, status: ${res.status}`);
+        }
 
+        return await res.json();
+    };
+
+    getResource('http://localhost:3000/menu')
+        .then(data => {
+            data.forEach(({img, altimg, title, descr, price}) => {
+                new MenuCard(img, altimg, title, descr, price, '.menu .container').render();
+            });
+        });
+
+
+    // getResource('http://localhost:3000/menu')
+    //     .then(data => createCard(data));
+
+    // function createCard(data) {
+    //     data.forEach(({img, altimg, title, descr, price}) => {
+    //         const element = document.createElement('div');
+
+    //         element.classList.add("menu__item");
+
+    //         element.innerHTML = `
+    //             <img src=${img} alt=${altimg}>
+    //             <h3 class="menu__item-subtitle">${title}</h3>
+    //             <div class="menu__item-descr">${descr}</div>
+    //             <div class="menu__item-divider"></div>
+    //             <div class="menu__item-price">
+    //                 <div class="menu__item-cost">Цена:</div>
+    //                 <div class="menu__item-total"><span>${price}</span> грн/день</div>
+    //             </div>
+    //         `;
+    //         document.querySelector(".menu .container").append(element);
+    //     });
+    // }
+    
     // FORMS
 
     const forms = document.querySelectorAll('form'); // Получаем все элементы по тегу form
@@ -217,11 +233,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Под все формы подвязываем функцию postData
     forms.forEach(item => {
-        postData(item);
+        bindPostData(item);
     });
 
     // Функция которая будет отвечать за постинг данных
-    function postData(form) {   // функция принимает в себя аргумент(форму)
+    const postData = async (url, data) => { // когда вызываем postData передаем url который дальше передается в fetch; data - данные которые будут поститься
+        const res = await fetch(url , {
+            method:'POST',
+            headers: {
+                "Content-type": "application/json"
+            },
+            body: data
+        });
+        return await res.json();
+    };
+
+    
+    // Функция которая будет отвечать за привязку постинга
+    function bindPostData(form) {   // функция принимает в себя аргумент(форму)
         form.addEventListener('submit', (e) => {
             e.preventDefault(); //отменяем стандартное поведение браузера
 
@@ -231,18 +260,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 display:block;
                 margin: 0 auto;
             `;
-            form.insertAdjecentElement('afterend', statusMessage);
+            form.insertAdjacentElement('afterend', statusMessage);
 
             const formData = new FormData(form); //внутрь передаем форму с которой нужно собрать информацию
 
-            fetch('server.php', {
-                method:'POST',
-                // headers: {
-                //     "Content-type": "application/json"
-                // },
-                body: formData
-            })
-            .then(data => data.text())
+            const json = JSON.stringify(Object.fromEntries(formData.entries()));
+
+            postData('server.php', json)
             .then(data => { // data данные которые вернул сервер
                 console.log(data.response);
                 showThanksModal(message.success);                       
@@ -282,4 +306,64 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal();
         },4000);
     }
+
+    // Получим доступ к базе данных
+    fetch('http://localhost:3000/menu')
+        .then(data => data.json()) // Полученный ответ от сервера(данные) - data, превратим в обычный js обьект
+        .then(res => console.log(res)); // Выведем результат который получили
+
+
+    // SLIDER
+
+
+    const slides = document.querySelectorAll('.offer__slide'), // Получаем все слайды
+          prev = document.querySelector('.offer__slider-prev'), // Получаем стрелки
+          next = document.querySelector('.offer__slider-next'),
+          total = document.querySelector('#total'),
+          current = document.querySelector('#current');
+    
+    let slideIndex = 1; // Текущее положение слайдера
+
+    showSlides(slideIndex);
+
+    if(slides.length > 10) {
+        total.textContent = `0${slides.length}`;
+    } else {
+        total.textContent = slides.length;
+    }
+
+    // Функция по показу и скрытию сладов
+
+    function showSlides(n) { // n - это slideIndex
+        if(n > slides.length) { // Если n будет больше чем наше количество слайдов
+            slideIndex = 1;
+        }
+
+        if(n < 1) { // Если n будет меньше чем количество слайдов
+            slideIndex = slides.length; // То мы перемещаемся в конец слайдов
+        }
+
+        slides.forEach(item => { // скроем все слайды
+            item.style.display = 'none';
+        });
+
+        slides[slideIndex - 1].style.display = 'block'; // Показываем нужный слайд
+
+        if(slides.length < 10) {
+            current.textContent = `0${slideIndex}`;
+        } else {
+            current.textContent = slideIndex;
+        }
+    }
+
+    function plusSlides(n) {
+        showSlides(slideIndex += n);
+    }
+
+    prev.addEventListener('click', ()=> {
+        plusSlides(-1);
+    });
+    next.addEventListener('click', ()=> {
+        plusSlides(1);
+    });
 });
